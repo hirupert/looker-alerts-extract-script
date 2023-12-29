@@ -21,9 +21,9 @@ schedules = schedules_response.json()
 fields_alerts = alerts[0].keys() if len(alerts) > 0 else []
 fields_schedules = schedules[0].keys() if len(schedules) > 0 else []
 
-# TODO flatten nested dicts such as destinations and scheduled_plan_destination
+# TODO figure out how to flatten lists such as destinations and scheduled_plan_destination
 
-fieldnames = fields_alerts + fields_schedules
+fieldnames = list(fields_alerts) + list(fields_schedules)
 fieldnames = list(set(fieldnames))  # remove duplicates
 
 result_file = open('results.csv', 'w')
