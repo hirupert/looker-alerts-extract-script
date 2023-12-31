@@ -37,7 +37,7 @@ fields_schedules = schedules[0].keys() if len(schedules) > 0 else []
 
 # TODO figure out how to flatten lists such as destinations and scheduled_plan_destination
 
-fieldnames = list(fields_alerts) + list(fields_schedules)
+fieldnames = ['type'] + list(fields_alerts) + list(fields_schedules)
 fieldnames = list(set(fieldnames))  # remove duplicates
 
 result_file = open('results.csv', 'w')
@@ -45,8 +45,10 @@ writer = csv.DictWriter(result_file, fieldnames=fieldnames)
 writer.writeheader()
 
 for alert in alerts:
+    alert['type'] = 'alert'
     writer.writerow(alert)
 for schedule in schedules:
+    schedule['type'] = 'schedule'
     writer.writerow(schedule)
 
 result_file.close()
