@@ -2,10 +2,19 @@ import os
 import requests
 import csv
 from urllib.parse import urljoin
+from cron_descriptor import get_description
 
-api_url = urljoin(os.environ.get('LOOKER_API_BASE_URL'), "api/")
+api_base_url = os.environ.get('LOOKER_API_BASE_URL')
+if not api_base_url:
+    api_base_url = input('Enter Looker API base URL: ')
 api_client_id = os.environ.get('LOOKER_CLIENT_ID')
+if not api_client_id:
+    api_client_id = input('Enter Looker API client ID: ')
 api_client_secret = os.environ.get('LOOKER_CLIENT_SECRET')
+if not api_client_secret:
+    api_client_secret = input('Enter Looker API client secret: ')
+
+api_url = urljoin(api_base_url, "api/")
 
 token_response = requests.post(
     urljoin(api_url, "login"), data={"client_id": api_client_id, "client_secret": api_client_secret})
@@ -35,20 +44,89 @@ alerts = alerts_response.json()
 fields_alerts = alerts[0].keys() if len(alerts) > 0 else []
 fields_schedules = schedules[0].keys() if len(schedules) > 0 else []
 
-# TODO figure out how to flatten lists such as destinations and scheduled_plan_destination
-
-fieldnames = ['type'] + list(fields_alerts) + list(fields_schedules)
-fieldnames = list(set(fieldnames))  # remove duplicates
+results_columns = [
+    'type',
+    'name',
+    'owner',
+    'schedule_trigger',
+    'destinations_count',
+    'destinations',
+    'metrics',
+    'looks_tiles',
+    'conditions',
+    'sampling_frequency',
+    'message_content',
+    'communication_tool',
+    'engagement_usage',
+]
+# 2 CSV files, one for actual results, one for statistics
 
 result_file = open('results.csv', 'w')
-writer = csv.DictWriter(result_file, fieldnames=fieldnames)
-writer.writeheader()
+results_writer = csv.DictWriter(result_file, fieldnames=results_columns)
+results_writer.writeheader()
 
 for alert in alerts:
-    alert['type'] = 'alert'
-    writer.writerow(alert)
+    formatted_alert = {
+        'type': 'alert',
+        'name': alert['custom_title'],
+        'owner': alert['owner_display_name'],
+        'schedule_trigger': 0,  # <- TODO
+        'destinations_count': len(alert['destinations']),
+        'destinations': alert['destinations'],
+        'metrics': alert['field']['name'],
+        'looks_tiles': 0,  # <- TODO
+        'conditions': alert['comparison_type'] + ' ' + str(alert['threshold']),
+        'sampling_frequency': get_description(alert['cron']),
+        'message_content': '',
+        'communication_tool': '',
+        'engagement_usage': '??',
+    }
+    results_writer.writerow(formatted_alert)
 for schedule in schedules:
-    schedule['type'] = 'schedule'
-    writer.writerow(schedule)
+    formatted_schedule = {
+        'type': 'schedule',
+        'name': schedule['name'],
+        'owner': schedule['user']['display_name'],
+        'schedule_trigger': 0,  # <- TODO
+        'destinations_count': len(schedule['scheduled_plan_destination']),
+        'destinations': schedule['scheduled_plan_destination'],
+        'metrics': schedule['name'],  # <- TODO
+        'looks_tiles': 0,  # <- TODO
+        'conditions': '',
+        'sampling_frequency': get_description(schedule['crontab']),
+        'message_content': '',
+        'communication_tool': '',
+        'engagement_usage': '??',
+    }
+    results_writer.writerow(formatted_schedule)
 
 result_file.close()
+
+# Statistics file
+
+metrics_names = map(lambda alert: alert['field']['name'], alerts)
+
+# Destination names are either email addresses or integration IDs
+destination_names = []
+for alert in alerts:
+    for destination in alert['destinations']:
+        destination_name = destination.get(
+            'email_address', destination.get("action_hub_integration_id"))
+        if destination_name:
+            destination_names.append(destination_name)
+
+stats_obj = {
+    'alerts_count': len(alerts),
+    'schedules_count': len(schedules),
+    # count of unique metrics names
+    'metrics_count': len(list(set(metrics_names))),
+    # count of unique destinations names
+    'destinations_count': len(list(set(destination_names))),
+}
+
+stats_file = open('stats.csv', 'w')
+stats_writer = csv.DictWriter(stats_file, fieldnames=list(stats_obj.keys()))
+stats_writer.writeheader()
+stats_writer.writerow(stats_obj)
+
+stats_file.close()
