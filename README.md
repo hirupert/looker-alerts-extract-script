@@ -13,6 +13,7 @@ pipenv run python3 main.py
 
 Environment variables are used to configure the script. The following environment variables are used:
 - `LOOKER_API_BASE_URL`: The base URL of the Looker API. This is usually `https://<instance_name>.cloud.looker.com`.
-- `LOOKER_API_TOKEN`: The API token to use for the Looker instance.
+- `LOOKER_CLIENT_ID`: The API client ID to use for the Looker instance.
+- `LOOKER_CLIENT_SECRET`: The API client secret to use for the Looker instance.
 
-How to generate API token: https://cloud.google.com/looker/docs/api-auth
+If one or more of these environment variables are not set, the script will prompt you to enter them.
