@@ -4,6 +4,27 @@ import csv
 from urllib.parse import urljoin
 from cron_descriptor import get_description
 
+
+def format_dashboard_elements(dashboard_elements):
+    formatted_elements = []
+    for element in dashboard_elements:
+        if not element['query']:
+            continue
+
+        formatted_element = {
+            'view': element['query']['view'],
+            'fields': element['query']['fields'],
+            'pivots': element['query']['pivots'],
+            'filters': element['query']['filters'],
+            'sorts': element['query']['sorts'],
+            'single_value_title': element['query']['vis_config'].get('single_value_title', ''),
+            'note_text': element['note_text'],
+            'model': element['query']['model'],
+        }
+        formatted_elements.append(formatted_element)
+    return formatted_elements
+
+
 api_base_url = os.environ.get('LOOKER_API_BASE_URL')
 if not api_base_url:
     api_base_url = input('Enter Looker API base URL: ')
@@ -65,6 +86,18 @@ results_writer = csv.DictWriter(result_file, fieldnames=results_columns)
 results_writer.writeheader()
 
 for alert in alerts:
+    dashboard_element_response = requests.get(urljoin(
+        api_url, "4.0/dashboard_elements/"+str(alert['dashboard_element_id'])), headers=headers)
+    dashboard_element_response.raise_for_status()
+    dashboard_element = dashboard_element_response.json()
+
+    dashboard_response = requests.get(urljoin(
+        api_url, "4.0/dashboards/"+str(dashboard_element['dashboard_id'])), headers=headers)
+    dashboard_response.raise_for_status()
+    dashboard = dashboard_response.json()
+
+    dashboard_elements = dashboard['dashboard_elements']
+
     formatted_alert = {
         'schedule_or_data_trigger': "alert",
         'name': alert['custom_title'],
@@ -72,7 +105,7 @@ for alert in alerts:
         'destinations_count': len(alert['destinations']),
         'destinations': alert['destinations'],
         'metrics': alert['field']['name'],
-        'looks_tiles': 0,  # <- TODO
+        'looks_tiles': format_dashboard_elements(dashboard_elements),
         'conditions': alert['comparison_type'] + ' ' + str(alert['threshold']),
         'sampling_frequency': get_description(alert['cron']),
         'message_content': '',
@@ -80,7 +113,15 @@ for alert in alerts:
         'engagement_usage': '??',
     }
     results_writer.writerow(formatted_alert)
+
 for schedule in schedules:
+    dashboard_response = requests.get(urljoin(
+        api_url, "4.0/dashboards/"+str(schedule['dashboard_id'])), headers=headers)
+    dashboard_response.raise_for_status()
+    dashboard = dashboard_response.json()
+
+    dashboard_elements = dashboard['dashboard_elements']
+
     formatted_schedule = {
         'schedule_or_data_trigger': "schedule",
         'name': schedule['name'],
@@ -88,7 +129,7 @@ for schedule in schedules:
         'destinations_count': len(schedule['scheduled_plan_destination']),
         'destinations': schedule['scheduled_plan_destination'],
         'metrics': '',  # keep empty for schedules
-        'looks_tiles': 0,  # <- TODO
+        'looks_tiles': format_dashboard_elements(dashboard_elements),
         'conditions': '',
         'sampling_frequency': get_description(schedule['crontab']),
         'message_content': '',
