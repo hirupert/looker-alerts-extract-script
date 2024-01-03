@@ -25,6 +25,16 @@ def format_dashboard_elements(dashboard_elements):
     return formatted_elements
 
 
+def get_dashboard_elements(dashboard_id, headers):
+    dashboard_response = requests.get(
+        urljoin(api_url, "4.0/dashboards/"+dashboard_id), headers=headers)
+    dashboard_response.raise_for_status()
+    dashboard = dashboard_response.json()
+
+    dashboard_elements = dashboard['dashboard_elements']
+    return dashboard_elements
+
+
 api_base_url = os.environ.get('LOOKER_API_BASE_URL')
 if not api_base_url:
     api_base_url = input('Enter Looker API base URL: ')
@@ -91,12 +101,8 @@ for alert in alerts:
     dashboard_element_response.raise_for_status()
     dashboard_element = dashboard_element_response.json()
 
-    dashboard_response = requests.get(urljoin(
-        api_url, "4.0/dashboards/"+str(dashboard_element['dashboard_id'])), headers=headers)
-    dashboard_response.raise_for_status()
-    dashboard = dashboard_response.json()
-
-    dashboard_elements = dashboard['dashboard_elements']
+    dashboard_elements = get_dashboard_elements(
+        str(dashboard_element['dashboard_id']), headers)
 
     formatted_alert = {
         'schedule_or_data_trigger': "alert",
@@ -115,12 +121,8 @@ for alert in alerts:
     results_writer.writerow(formatted_alert)
 
 for schedule in schedules:
-    dashboard_response = requests.get(urljoin(
-        api_url, "4.0/dashboards/"+str(schedule['dashboard_id'])), headers=headers)
-    dashboard_response.raise_for_status()
-    dashboard = dashboard_response.json()
-
-    dashboard_elements = dashboard['dashboard_elements']
+    dashboard_elements = get_dashboard_elements(
+        str(schedule['dashboard_id']), headers)
 
     formatted_schedule = {
         'schedule_or_data_trigger': "schedule",
