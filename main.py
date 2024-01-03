@@ -45,10 +45,9 @@ fields_alerts = alerts[0].keys() if len(alerts) > 0 else []
 fields_schedules = schedules[0].keys() if len(schedules) > 0 else []
 
 results_columns = [
-    'type',
+    'schedule_or_data_trigger',
     'name',
     'owner',
-    'schedule_trigger',
     'destinations_count',
     'destinations',
     'metrics',
@@ -67,10 +66,9 @@ results_writer.writeheader()
 
 for alert in alerts:
     formatted_alert = {
-        'type': 'alert',
+        'schedule_or_data_trigger': "alert",
         'name': alert['custom_title'],
         'owner': alert['owner_display_name'],
-        'schedule_trigger': 0,  # <- TODO
         'destinations_count': len(alert['destinations']),
         'destinations': alert['destinations'],
         'metrics': alert['field']['name'],
@@ -84,13 +82,12 @@ for alert in alerts:
     results_writer.writerow(formatted_alert)
 for schedule in schedules:
     formatted_schedule = {
-        'type': 'schedule',
+        'schedule_or_data_trigger': "schedule",
         'name': schedule['name'],
         'owner': schedule['user']['display_name'],
-        'schedule_trigger': 0,  # <- TODO
         'destinations_count': len(schedule['scheduled_plan_destination']),
         'destinations': schedule['scheduled_plan_destination'],
-        'metrics': schedule['name'],  # <- TODO
+        'metrics': '',  # keep empty for schedules
         'looks_tiles': 0,  # <- TODO
         'conditions': '',
         'sampling_frequency': get_description(schedule['crontab']),
