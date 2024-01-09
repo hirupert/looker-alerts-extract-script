@@ -1,7 +1,7 @@
 # Looker Alerts & Schedules Extraction Utility
 A simple python utility for downloading details of all the alerts or schedules configured in your Looker instance.
 
-Built by the team at Rupert. Tired of fighting with clunky BI alerts and schedules? [We can help!](www.hirupert.com)
+Built by the team at Rupert. Tired of fighting with clunky BI alerts and schedules? [We can help!](https://www.hirupert.com)
 
 ## Getting Started
 We use `pipenv` to manage our dependencies. To install the dependencies, run:
