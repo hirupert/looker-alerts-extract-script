@@ -36,13 +36,20 @@ def get_dashboard_elements(dashboard_id, headers):
     return dashboard_elements
 
 
-def format_alert_destinations(destinations):
+def format_alert_destinations(destinations, headers):
     formatted_destinations = []
     for destination in destinations:
         formatted_destination = {
             'type': destination['destination_type']  # EMAIL or ACTION_HUB
         }
-        # TODO: if possible, for the Slack destinations pull out the channel type value
+
+        if destination.get('action_hub_integration_id'):
+            integration_response = requests.get(urljoin(
+                api_url, "4.0/integrations/"+destination['action_hub_integration_id']), headers=headers)
+            integration_response.raise_for_status()
+            integration = integration_response.json()
+            formatted_destination['channel_type'] = integration['label']
+
         formatted_destinations.append(formatted_destination)
 
     return formatted_destinations
@@ -146,7 +153,7 @@ for alert in alerts:
         'name': alert['custom_title'],
         'owner': alert['owner_display_name'],
         'destinations_count': len(alert['destinations']),
-        'destinations': format_alert_destinations(alert['destinations']),
+        'destinations': format_alert_destinations(alert['destinations'], headers=headers),
         'metrics': alert['field']['name'],
         'looks_tiles': format_dashboard_elements(dashboard_elements),
         'conditions': alert['comparison_type'] + ' ' + str(alert['threshold']),
