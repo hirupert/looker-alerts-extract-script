@@ -1,3 +1,4 @@
+import json
 import os
 import requests
 import csv
@@ -33,6 +34,40 @@ def get_dashboard_elements(dashboard_id, headers):
 
     dashboard_elements = dashboard['dashboard_elements']
     return dashboard_elements
+
+
+def format_alert_destinations(destinations):
+    formatted_destinations = []
+    for destination in destinations:
+        formatted_destination = {
+            'type': destination['destination_type']  # EMAIL or ACTION_HUB
+        }
+        # TODO: if possible, for the Slack destinations pull out the channel type value
+        formatted_destinations.append(formatted_destination)
+
+    return formatted_destinations
+
+
+def format_schedule_destinations(destinations):
+    formatted_destinations = []
+    for destination in destinations:
+        formatted_destination = {
+            'format': destination['format'],
+            'type': destination['type'],
+            'address': destination['address'],
+            'message': destination['message'],
+        }
+
+        # parameters is either an empty string or a JSON string (empty string as fallback)
+        parameters = destination.get('parameters', '')
+        if parameters != '':
+            parsed_parameters = json.loads(parameters)
+            formatted_destination['channel_type'] = parsed_parameters.get(
+                'channelType', '')
+            formatted_destination['initial_comment'] = parsed_parameters.get(
+                'initial_comment', '')
+        formatted_destinations.append(formatted_destination)
+    return formatted_destinations
 
 
 api_base_url = os.environ.get('LOOKER_API_BASE_URL')
@@ -111,7 +146,7 @@ for alert in alerts:
         'name': alert['custom_title'],
         'owner': alert['owner_display_name'],
         'destinations_count': len(alert['destinations']),
-        'destinations': alert['destinations'],
+        'destinations': format_alert_destinations(alert['destinations']),
         'metrics': alert['field']['name'],
         'looks_tiles': format_dashboard_elements(dashboard_elements),
         'conditions': alert['comparison_type'] + ' ' + str(alert['threshold']),
@@ -132,9 +167,9 @@ for schedule in schedules:
         'name': schedule['name'],
         'owner': schedule['user']['display_name'],
         'destinations_count': len(schedule['scheduled_plan_destination']),
-        'destinations': schedule['scheduled_plan_destination'],
+        'destinations': format_schedule_destinations(schedule['scheduled_plan_destination']),
         'metrics': '',  # keep empty for schedules
-        'looks_tiles': format_dashboard_elements(dashboard_elements),
+        # 'looks_tiles': format_dashboard_elements(dashboard_elements),
         'conditions': '',
         'sampling_frequency': get_description(schedule['crontab']),
         'message_content': '',
