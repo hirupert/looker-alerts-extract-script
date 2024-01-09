@@ -76,6 +76,7 @@ fields_alerts = alerts[0].keys() if len(alerts) > 0 else []
 fields_schedules = schedules[0].keys() if len(schedules) > 0 else []
 
 results_columns = [
+    'id',
     'schedule_or_data_trigger',
     'name',
     'owner',
@@ -105,6 +106,7 @@ for alert in alerts:
         str(dashboard_element['dashboard_id']), headers)
 
     formatted_alert = {
+        'id': alert['id'],
         'schedule_or_data_trigger': "alert",
         'name': alert['custom_title'],
         'owner': alert['owner_display_name'],
@@ -125,6 +127,7 @@ for schedule in schedules:
         str(schedule['dashboard_id']), headers)
 
     formatted_schedule = {
+        'id': schedule['id'],
         'schedule_or_data_trigger': "schedule",
         'name': schedule['name'],
         'owner': schedule['user']['display_name'],
@@ -170,3 +173,5 @@ stats_writer.writeheader()
 stats_writer.writerow(stats_obj)
 
 stats_file.close()
+
+print("Generated results.csv and stats.csv files.")
