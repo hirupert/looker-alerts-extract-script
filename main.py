@@ -35,6 +35,15 @@ def get_dashboard_elements(dashboard_id, headers):
     dashboard_elements = dashboard['dashboard_elements']
     return dashboard_elements
 
+def get_dashboard_title(dashboard_id, headers):
+  dashboard_response = requests.get(
+      urljoin(api_url, "4.0/dashboards/"+dashboard_id), headers=headers)
+  dashboard_response.raise_for_status()
+  dashboard = dashboard_response.json()
+
+  dashboard_title = dashboard['title']
+  return dashboard_title
+
 
 def format_alert_destinations(destinations, headers):
     destination_types = []
@@ -131,8 +140,8 @@ fields_alerts = alerts[0].keys() if len(alerts) > 0 else []
 fields_schedules = schedules[0].keys() if len(schedules) > 0 else []
 
 results_columns = [
-    'id',
     'schedule_or_data_trigger',
+    'id',
     'name',
     'owner',
     'destinations_count',
@@ -140,12 +149,10 @@ results_columns = [
     'channel_type',
     'format',
     'message',
-    'metrics',
-    'looks_tiles',
+    'metric_monitored',
     'conditions',
     'sampling_frequency',
-    'message_content',
-    'communication_tool',
+    'source_tile_or_dashboard',
     'engagement_usage',
 ]
 # 2 CSV files, one for actual results, one for statistics
@@ -169,12 +176,10 @@ for alert in alerts:
         'name': alert['custom_title'],
         'owner': alert['owner_display_name'],
         'destinations_count': len(alert['destinations']),
-        'metrics': alert['field']['name'],
-        'looks_tiles': format_dashboard_elements(dashboard_elements),
+        'metric_monitored': alert['field']['name'],
+        'source_tile_or_dashboard': format_dashboard_elements(dashboard_elements),
         'conditions': alert['comparison_type'] + ' ' + str(alert['threshold']),
         'sampling_frequency': get_description(alert['cron']),
-        'message_content': '',
-        'communication_tool': '',
         'engagement_usage': '??',
     }
     formatted_alert.update(format_alert_destinations(
@@ -185,18 +190,19 @@ for schedule in schedules:
     dashboard_elements = get_dashboard_elements(
         str(schedule['dashboard_id']), headers)
 
+    dashboard_title = get_dashboard_title(
+        str(schedule['dashboard_id']), headers)
+
     formatted_schedule = {
         'id': schedule['id'],
         'schedule_or_data_trigger': "schedule",
         'name': schedule['name'],
         'owner': schedule['user']['display_name'],
         'destinations_count': len(schedule['scheduled_plan_destination']),
-        'metrics': '',  # keep empty for schedules
-        # 'looks_tiles': format_dashboard_elements(dashboard_elements),
+        'metric_monitored': '',  # keep empty for schedules
+        'source_tile_or_dashboard': dashboard_title,
         'conditions': '',
         'sampling_frequency': get_description(schedule['crontab']),
-        'message_content': '',
-        'communication_tool': '',
         'engagement_usage': '??',
     }
     formatted_schedule.update(format_schedule_destinations(
@@ -234,4 +240,10 @@ stats_writer.writerow(stats_obj)
 
 stats_file.close()
 
-print("Generated results.csv and stats.csv files.")
+print("""
+Generated results.csv and stats.csv files.
+
+Built by the team at Rupert.
+Tired of fighting with BI alerts and schedules?
+We can help! www.hirupert.com
+""")
