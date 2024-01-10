@@ -6,7 +6,7 @@ Built by the team at Rupert. Tired of struggling with BI alerts and schedules? [
 ## What does the utility do?
 It generates a csv file containing all the alerts and schedules found in your Looker instance. Point the utility at your Looker instance, pass it API credentials and you'll get a file that looks like this:
 
-_screenshot_
+![Example output from the Looker alert and schedule extract utility](example-output.png)
 
 ### Why?
 Managing contnet in Looker is hard. Most instances are cluttered. Alerts and schedules serve a crucual data distribution function. This utility makes it easy to review and understand 
