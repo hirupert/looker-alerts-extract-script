@@ -37,43 +37,57 @@ def get_dashboard_elements(dashboard_id, headers):
 
 
 def format_alert_destinations(destinations, headers):
-    formatted_destinations = []
+    destination_types = []
+    channel_types = []
+
     for destination in destinations:
-        formatted_destination = {
-            'destination_type': 'email' if destination['destination_type'] == 'EMAIL' else 'slack'
-        }
+        destination_types.append(
+            'email' if destination['destination_type'] == 'EMAIL' else 'slack')
 
         if destination.get('action_hub_integration_id'):
             integration_response = requests.get(urljoin(
                 api_url, "4.0/integrations/"+destination['action_hub_integration_id']), headers=headers)
             integration_response.raise_for_status()
             integration = integration_response.json()
-            formatted_destination['channel_type'] = integration['label']
+            channel_types.append(integration['label'])
+        else:
+            channel_types.append('')
 
-        formatted_destinations.append(formatted_destination)
-
-    return formatted_destinations
+    return {
+        'destination_type': ",".join(list(set(destination_types))),
+        'channel_type': ",".join(list(set(channel_types))),
+    }
 
 
 def format_schedule_destinations(destinations):
-    formatted_destinations = []
+    destination_types = []
+    channel_types = []
+    formats = []
+    messages = []
+
     for destination in destinations:
-        formatted_destination = {
-            'destination_type': 'email' if destination['type'] == 'email' else 'slack',
-            'format': destination['format'],
-            'message': destination['message'],
-        }
+        destination_types.append(
+            'email' if destination['type'] == 'email' else 'slack')
+        if destination['format']:
+            formats.append(destination['format'])
+        if destination['message']:
+            messages.append(destination['message'])
 
         # parameters is either an empty string or a JSON string (empty string as fallback)
         parameters = destination.get('parameters', '')
         if parameters != '':
             parsed_parameters = json.loads(parameters)
-            formatted_destination['channel_type'] = parsed_parameters.get(
-                'channelType', '')
-            formatted_destination['message'] = parsed_parameters.get(
-                'initial_comment', '')
-        formatted_destinations.append(formatted_destination)
-    return formatted_destinations
+            channel_types.append(parsed_parameters.get(
+                'channelType', ''))
+            messages.append(parsed_parameters.get(
+                'initial_comment', ''))
+
+    return {
+        'destination_type': ",".join(list(set(destination_types))),
+        'channel_type': ",".join(list(set(channel_types))),
+        'format': ",".join(formats),
+        'message': ",".join(messages),
+    }
 
 
 api_base_url = os.environ.get('LOOKER_API_BASE_URL')
@@ -122,7 +136,10 @@ results_columns = [
     'name',
     'owner',
     'destinations_count',
-    'destinations',
+    'destination_type',
+    'channel_type',
+    'format',
+    'message',
     'metrics',
     'looks_tiles',
     'conditions',
@@ -152,7 +169,6 @@ for alert in alerts:
         'name': alert['custom_title'],
         'owner': alert['owner_display_name'],
         'destinations_count': len(alert['destinations']),
-        'destinations': format_alert_destinations(alert['destinations'], headers=headers),
         'metrics': alert['field']['name'],
         'looks_tiles': format_dashboard_elements(dashboard_elements),
         'conditions': alert['comparison_type'] + ' ' + str(alert['threshold']),
@@ -161,6 +177,8 @@ for alert in alerts:
         'communication_tool': '',
         'engagement_usage': '??',
     }
+    formatted_alert.update(format_alert_destinations(
+        alert['destinations'], headers=headers))
     results_writer.writerow(formatted_alert)
 
 for schedule in schedules:
@@ -173,7 +191,6 @@ for schedule in schedules:
         'name': schedule['name'],
         'owner': schedule['user']['display_name'],
         'destinations_count': len(schedule['scheduled_plan_destination']),
-        'destinations': format_schedule_destinations(schedule['scheduled_plan_destination']),
         'metrics': '',  # keep empty for schedules
         # 'looks_tiles': format_dashboard_elements(dashboard_elements),
         'conditions': '',
@@ -182,6 +199,8 @@ for schedule in schedules:
         'communication_tool': '',
         'engagement_usage': '??',
     }
+    formatted_schedule.update(format_schedule_destinations(
+        schedule['scheduled_plan_destination']))
     results_writer.writerow(formatted_schedule)
 
 result_file.close()
