@@ -40,7 +40,7 @@ def format_alert_destinations(destinations, headers):
     formatted_destinations = []
     for destination in destinations:
         formatted_destination = {
-            'type': destination['destination_type']  # EMAIL or ACTION_HUB
+            'destination_type': 'email' if destination['destination_type'] == 'EMAIL' else 'slack'
         }
 
         if destination.get('action_hub_integration_id'):
@@ -59,9 +59,8 @@ def format_schedule_destinations(destinations):
     formatted_destinations = []
     for destination in destinations:
         formatted_destination = {
+            'destination_type': 'email' if destination['type'] == 'email' else 'slack',
             'format': destination['format'],
-            'type': destination['type'],
-            'address': destination['address'],
             'message': destination['message'],
         }
 
@@ -71,7 +70,7 @@ def format_schedule_destinations(destinations):
             parsed_parameters = json.loads(parameters)
             formatted_destination['channel_type'] = parsed_parameters.get(
                 'channelType', '')
-            formatted_destination['initial_comment'] = parsed_parameters.get(
+            formatted_destination['message'] = parsed_parameters.get(
                 'initial_comment', '')
         formatted_destinations.append(formatted_destination)
     return formatted_destinations
