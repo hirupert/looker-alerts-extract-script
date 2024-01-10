@@ -52,3 +52,4 @@ Environment variables are used to configure the script. The following environmen
 If one or more of these environment variables are not set, the script will prompt you to enter them.
 
 ### Optional: Run the script with Replit
+Don't have a python environment set up? You don't need one! Fork [this repl](https://replit.com/@AndrewConnolly3/Looker-Alert-and-Schedule-Extract-Util?v=1#main.py) on Rpelit and you'll have the script running in your broswer in just minutes.
